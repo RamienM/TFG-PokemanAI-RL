@@ -37,6 +37,6 @@ To start training, run one of the following commands:
 You can follow the live training progress through the Pokémon Red map visualizer by Peter Whidden: [Pokemon Red Visualizer](https://pwhiddy.github.io/pokerl-map-viz/)
 
 ## 📚 References
-his project is an adaptation of Peter Whidden's work.
+This project is an adaptation of Peter Whidden's work.
 You can find the original repository and detailed documentation here:
 👉 [PokemonRedExperiments on GitHub](https://github.com/PWhiddy/PokemonRedExperiments)
