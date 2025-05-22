@@ -17,7 +17,6 @@ class PokemonRedEnv(Env):
         
 
         ##--------- Config -----------------
-        self.save_final_state = config["save_final_state"]
         self.print_rewards = config["print_rewards"]
         self.headless = config["headless"]
         self.init_state = config["init_state"]
@@ -338,6 +337,7 @@ class PokemonRedEnv(Env):
     def get_remaining_in_current_region(self):
         region = self.get_current_region()
         x, y, _ = self.memory_reader.get_game_coords()
+        
         if not region:
             return 1.0  # No estás en ninguna región, asumimos sin explorar
 
@@ -355,6 +355,18 @@ class PokemonRedEnv(Env):
         h = region["ymax"] - region["ymin"]
         total_cells = w * h
         visited_cells = len(self.region_cells_seen[region_id])
-        remaining = total_cells - visited_cells
+        
+        # Cálculo del porcentaje explorado
+        explored_ratio = visited_cells / total_cells
 
-        return remaining / total_cells  # Valor normalizado entre 0.0 y 1.0
+        # Queremos que: 
+        #   - explored_ratio >= 0.75  -> return 0.0
+        #   - explored_ratio == 0.0   -> return 1.0
+        #   - explored_ratio in (0, 0.75) -> lineal de 1.0 a 0.0
+
+        threshold = 0.75
+        if explored_ratio >= threshold:
+            return 0.0
+        else:
+            return 1.0 - (explored_ratio / threshold)
+

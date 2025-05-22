@@ -19,7 +19,6 @@ coords_pad: 12                  # Padding aplicado a las coordenadas codificadas
 # === Recompensas y exploración ===
 reward_scale: 1               # Escala de recompensa base
 explore_weight: 0.25            # Peso relativo de la recompensa por explorar
-reward_threshold: -100          # Umbral para reiniciar si recompensa es demasiado baja
 
 # === Entrenamiento ===
 num_cpu: 12                       # Número de entornos paralelos (subprocesos)
