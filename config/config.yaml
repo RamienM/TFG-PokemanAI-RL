@@ -2,8 +2,6 @@
 headless: true                  # Ejecutar emulación sin mostrar pantalla
 debug: false                    # Mostrar información de depuración por consola
 server: false                   # Modo servidor para control remoto (por ejemplo con sockets)
-save_final_state: false         # Guardar el estado final del juego
-early_stop: false               # Detener entrenamiento si se detecta condición crítica
 load_checkpoint: ""
 notes: "Exploracion basada en region"
 root_dir: "game&results/Pokemon_red_env/checkpoints"
@@ -16,7 +14,6 @@ gb_path: "game&results/Pokemon_red_env/PokemonRed.gb"    # Ruta al archivo del j
 
 # === Observación y codificación ===
 actions_stack: 32               # Tamaño del stack de acciones anteriores
-fourier_encode_freq: 5          # Máxima frecuencia para codificación de coordenadas (Fourier)
 coords_pad: 12                  # Padding aplicado a las coordenadas codificadas
 
 # === Recompensas y exploración ===
@@ -39,7 +36,4 @@ progress_bar: false
 # === WandB (Weights & Biases) ===
 use_wandb: true                 # Habilitar tracking con WandB
 wandb_project: pokemon-train    # Nombre del proyecto WandB
-
-# === Callbacks (personalizados) ===
-#save_every_stats: 200           # Guardar stats cada N pasos por hilo (para callback JSONL)
 
