@@ -30,6 +30,7 @@ bach_size: 256
 # === Logging & sesiones ===
 print_rewards: false            # Mostrar recompensas en consola durante entrenamiento
 save_video: false               # Guardar video de episodios
+save_video_audio_active: false  # Guardar audio video de episodios
 progress_bar: false
 
 # === WandB (Weights & Biases) ===
