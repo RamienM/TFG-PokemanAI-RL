@@ -57,11 +57,6 @@ class TensorboardCallback(BaseCallback):
             self.writer.add_histogram(f"env_stats_distribs/{key}", distrib, self.num_timesteps)
             self.logger.record(f"env_stats_max/{key}", max(distrib))
 
-        # Registrar flags de eventos (opcional)
-        list_of_flag_dicts = self.training_env.get_attr("current_event_flags_set")
-        merged_flags = {k: v for d in list_of_flag_dicts for k, v in d.items()}
-        self.logger.record("trajectory/all_flags", json.dumps(merged_flags))
-
         return True
 
 

@@ -5,7 +5,7 @@ server: false                   # Modo servidor para control remoto (por ejemplo
 save_final_state: false         # Guardar el estado final del juego
 early_stop: false               # Detener entrenamiento si se detecta condición crítica
 load_checkpoint: ""
-notes: "Prueba únicamente con step_penality, observacion casillas alrededor 8 y observacion media de exploracion"
+notes: "Exploracion basada en region"
 root_dir: "game&results/Pokemon_red_env/checkpoints"
 
 # === Emulación y entorno ===
@@ -25,11 +25,11 @@ explore_weight: 0.25            # Peso relativo de la recompensa por explorar
 reward_threshold: -100          # Umbral para reiniciar si recompensa es demasiado baja
 
 # === Entrenamiento ===
-num_cpu: 8                      # Número de entornos paralelos (subprocesos)
-checkpoint_save_freq: 10000     # Frecuencia para guardar modelo (en pasos)
-max_steps: 102400              # Número máximo de pasos por iteración
-bach_size: 256
-reward_threshold: -100
+num_cpu: 12                       # Número de entornos paralelos (subprocesos)
+checkpoint_save_freq: 10000       # Frecuencia para guardar modelo (en pasos)
+max_steps: 102400                 # Número máximo de pasos por iteración
+bach_size: 1024
+reward_threshold: -25
 
 # === Logging & sesiones ===
 print_rewards: false            # Mostrar recompensas en consola durante entrenamiento

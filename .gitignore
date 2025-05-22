@@ -1,1 +1,11 @@
+#Folders
 wandb/
+game&results/Pokemon_red_env/checkpoints
+**/__pycache__
+#Specific files
+game&results/Pokemon_red_env/PokemonRed.gb
+last_checkpoint_path.txt
+
+#Compile files
+*.py[cod]
+*$py.class
