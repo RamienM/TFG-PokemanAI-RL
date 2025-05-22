@@ -28,12 +28,14 @@ class GameEmulator:
     def __init__(self, config):
         rom_path = config["gb_path"]
         window_type = "null" if config["headless"] else "SDL2"
-        sound_active = bool(config.get("save_video_audio_active", False))
+        self.sound_active = bool(config.get("save_video_audio_active", False))
         emulation_speed = (
             6 if "emulation_speed" not in config else config["emulation_speed"]
         )
 
-        self.pyboy = PyBoy(rom_path, window=window_type, sound=sound_active)
+        self.pyboy = PyBoy(
+            rom_path, window=window_type, sound=self.sound_active
+        )
         self.pyboy.set_emulation_speed(emulation_speed)
 
     def step(self, action):
@@ -55,7 +57,7 @@ class GameEmulator:
         self.pyboy.tick(1)
 
         # Limpiar audio buffer si sonido está activo
-        if self.sound_active and self.pyboy.has_audio():
+        if self.sound_active:
             self.pyboy.get_audio_buffer().clear()
 
     def load_state(self, initial_state):
