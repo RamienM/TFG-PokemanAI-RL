@@ -32,7 +32,7 @@ class GameEmulator:
             6 if "emulation_speed" not in config else config["emulation_speed"]
         )
 
-        self.pyboy = PyBoy(rom_path, window=window_type)
+        self.pyboy = PyBoy(rom_path, window=window_type, sound_emulated=False)
         self.pyboy.set_emulation_speed(emulation_speed)
         
     def step(self,action):

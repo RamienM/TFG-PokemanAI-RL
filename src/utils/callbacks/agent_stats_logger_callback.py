@@ -7,7 +7,7 @@ class AgentStatsLoggerCallback(BaseCallback):
     Callback que guarda self.agent_stats[] de cada hilo en archivos JSONL separados, escribiendo cada N pasos.
     """
 
-    def __init__(self, base_dir="agent_stats_logs", num_envs=1, save_every=500, verbose=0):
+    def __init__(self, base_dir="agent_stats_logs", num_envs=1, save_every=1, verbose=0):
         super().__init__(verbose)
         self.base_dir = base_dir
         self.num_envs = num_envs

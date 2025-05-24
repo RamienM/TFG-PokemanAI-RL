@@ -151,7 +151,7 @@ if __name__ == "__main__":
         CheckpointCallback(save_freq=config.get("checkpoint_save_freq", 64),save_path=base_dir,name_prefix=sess_id), 
         TensorboardCallback(sess_path_logs,num_cpu), 
         EveryEpochMemoryCleaner(),
-        AgentStatsLoggerCallback(base_dir=agent_stats_dir,num_envs=num_cpu),
+        AgentStatsLoggerCallback(base_dir=agent_stats_dir,num_envs=num_cpu,save_every=config.get("save_stats_every",50)),
         RewardThresholdCallback(reward_threshold=config.get("reward_threshold",-100))
     ]
 

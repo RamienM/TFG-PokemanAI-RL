@@ -33,5 +33,21 @@ class STELLEInferencer:
                 output = self.model(tensor.to(self.device)).cpu()
 
         pred = torch.argmax(output, dim=1).squeeze(0).numpy().astype(np.uint8)
+        return pred
+    
+    def predict_with_overlay(self,np_image):
+        tensor = preprocess_image(np_image)
+        tensor = tensor.unsqueeze(0)
+
+        if self.use_onnx:
+            ort_inputs = {self.session.get_inputs()[0].name: tensor.numpy()}
+            ort_outs = self.session.run(None, ort_inputs)
+            output = torch.from_numpy(ort_outs[0])
+        else:
+            with torch.no_grad():
+                output = self.model(tensor.to(self.device)).cpu()
+
+        pred = torch.argmax(output, dim=1).squeeze(0).numpy().astype(np.uint8)
         overlay = apply_overlay(np_image, pred)
-        return overlay
+        return pred, overlay
+

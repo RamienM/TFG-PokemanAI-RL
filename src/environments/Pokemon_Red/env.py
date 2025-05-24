@@ -52,14 +52,16 @@ class PokemonRedEnv(Env):
         self.recent_actions = deque(maxlen=self.quantity_action_storage)
         self.action_space = spaces.Discrete(len(self.emulator.VALID_ACTIONS))
 
-        self.output_shape_main = (72,80,3)
+        self.output_shape_main = (72,80)
         self.observation_space = spaces.Dict(
             {
-                "main_screen" : spaces.Box(low=0, high=255, shape=self.output_shape_main, dtype=np.uint8),
+                "main_screen": spaces.Box(low=0, high=255, shape=self.output_shape_main, dtype=np.uint8),
+                "segmented_screen" : spaces.Box(low=0, high=15, shape=self.output_shape_main, dtype=np.uint8),
                 "health": spaces.Box(low=0, high=1),
                 "badges": spaces.Discrete(8),
                 "events": spaces.MultiBinary(self.memory_reader.get_difference_between_events()),
                 "map": spaces.Box(low=0, high=255, shape=(self.coords_pad*4,self.coords_pad*4, 1), dtype=np.uint8),
+                "visit_map": spaces.Box(low=0.0, high=1.0, shape=(self.coords_pad*4, self.coords_pad*4, 1), dtype=np.float32),
                 "recent_actions": spaces.MultiDiscrete([len(self.emulator.VALID_ACTIONS)]*self.quantity_action_storage),
                 "remaining_ratio": spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
                 "coords": spaces.Box(low=0, high=np.inf, shape=(3,), dtype=np.int32),
@@ -98,6 +100,7 @@ class PokemonRedEnv(Env):
         self.seen_coords = {}
 
         self.explore_map = np.zeros(GLOBAL_MAP_SHAPE, dtype=np.uint8)
+        self.visit_count_map = np.zeros(GLOBAL_MAP_SHAPE, dtype=np.float32)
 
         self.recent_main_screen = np.zeros(self.output_shape_main, dtype=np.uint8)
         self.main_screen = np.zeros(self.output_shape_main, dtype=np.uint8)
@@ -133,6 +136,7 @@ class PokemonRedEnv(Env):
         self.update_seen_coords()
         self.update_explore_map()
         self.update_heal_reward()
+        self.update_visit_map()
 
         self.party_size = self.memory_reader.read_pokemon_in_party()
 
@@ -146,17 +150,24 @@ class PokemonRedEnv(Env):
         return obs, new_reward, False, step_limit_reached, info
 
     def _get_obs(self):
-        screen = self.segmented_screen(self.emulator.get_screen())
+        screen = self.emulator.get_screen()
+        segmentation = self.segmented_screen(screen)
+
+        reduced_screen = self.reduce_screen(screen[:,:,0])
+        reduced_segmentation = self.reduce_screen(segmentation)
+
         x,y,m = self.memory_reader.get_game_coords()
         observation = {
-            "main_screen": screen, 
+            "main_screen": reduced_screen, 
+            "segmented_screen": reduced_segmentation,
             "health": np.array([self.read_hp_fraction()]),
             "badges": self.memory_reader.read_bagdes_in_possesion(),
             "events": np.array(self.memory_reader.read_event_bits(), dtype=np.int8),
             "map": self.get_explore_map()[:, :, None],
             "recent_actions": self.recent_actions,
             "remaining_ratio":  np.array([self.get_remaining_in_current_region()], dtype=np.float32),
-            "coords": np.array([x,y,m], dtype=np.int32)
+            "coords": np.array([x,y,m], dtype=np.int32),
+            "visit_map": self.get_visit_map_crop()[..., None],  # visitas normalizadas
         }
         
         return observation
@@ -185,6 +196,7 @@ class PokemonRedEnv(Env):
         if not self.memory_reader.is_in_battle():
             x_pos, y_pos, map_n = self.memory_reader.get_game_coords()
             coord_string = f"x:{x_pos} y:{y_pos} m:{map_n}"
+            
 
             # Incrementar el número de veces que se ha visitado la coordenada
             if coord_string in self.seen_coords:
@@ -228,7 +240,8 @@ class PokemonRedEnv(Env):
                 "badge": self.memory_reader.read_bagdes_in_possesion(),
                 "event": self.progress_reward["event"],
                 "healr": self.total_healing_rew,
-                "step_penality": self.step_count*self.step_discount
+                "step_penality": self.step_count*self.step_discount,
+                "action": self.recent_actions[0]
             }
         
     #--------- REWARDS FUNCTIONS -----------------
@@ -253,7 +266,7 @@ class PokemonRedEnv(Env):
             "heal": self.reward_scale * self.total_healing_rew * 0.0001,
             "dead": self.reward_scale * self.died_count / 5,
             "badge": self.reward_scale * self.memory_reader.read_bagdes_in_possesion() * 10,
-            "explore": self.reward_scale * self.get_exploration_reward(),
+            "explore": self.reward_scale * self.get_exploration_reward() * 2,
             "region": self.reward_scale * self.get_region_reward()
         }
     
@@ -287,6 +300,42 @@ class PokemonRedEnv(Env):
         out = np.repeat(out, 2, axis=1)
         return out
     
+    def update_visit_map(self):
+        """
+        Aumenta en 1 el contador de visitas de la casilla actual en visit_count_map.
+        """
+        if not self.memory_reader.is_in_battle():
+            x, y, m = self.memory_reader.get_game_coords()
+            gy, gx = self.get_global_coords()
+
+            if 0 <= gy < self.visit_count_map.shape[0] and 0 <= gx < self.visit_count_map.shape[1]:
+                self.visit_count_map[gy, gx] += 1
+
+    def get_visit_map_crop(self):
+        """
+        Devuelve el recorte del mapa de visitas normalizado (valores entre 0 y 1).
+        """
+        c = self.get_global_coords()
+        crop = np.zeros((self.coords_pad*2, self.coords_pad*2), dtype=np.float32)
+
+        if 0 <= c[0] < self.visit_count_map.shape[0] and 0 <= c[1] < self.visit_count_map.shape[1]:
+            crop = self.visit_count_map[
+                c[0]-self.coords_pad:c[0]+self.coords_pad,
+                c[1]-self.coords_pad:c[1]+self.coords_pad
+            ].astype(np.float32)
+
+        # Normalización
+        max_val = np.max(self.visit_count_map)
+        if max_val > 0:
+            crop /= max_val  # ahora entre 0 y 1
+
+        # Ampliamos como haces con explore_map
+        crop = np.repeat(crop, 2, axis=0)
+        crop = np.repeat(crop, 2, axis=1)
+
+        return crop
+
+
     def update_explore_map(self):
         c = self.get_global_coords()
         if c[0] >= self.explore_map.shape[0] or c[1] >= self.explore_map.shape[1]:
@@ -300,11 +349,15 @@ class PokemonRedEnv(Env):
         return local_to_global(y_pos, x_pos, map_n)
     
     def segmented_screen(self,screen):
-        maps = self.vision_model.predict(screen)
         if self.video_recorder:
-                self.video_recorder.save_videos(screen=screen,maps=maps)
-        maps = cv2.resize(maps, (maps.shape[1] // 2, maps.shape[0] // 2), interpolation=cv2.INTER_NEAREST)
-        return maps
+            pred, maps = self.vision_model.predict_with_overlay(screen)
+            self.video_recorder.save_videos(screen=screen,maps=maps)
+        else:
+            pred = self.vision_model.predict(screen)
+        return pred
+    
+    def reduce_screen(self,screen):
+        return cv2.resize(screen, (screen.shape[1] // 2, screen.shape[0] // 2), interpolation=cv2.INTER_NEAREST)
     
     
     def get_current_region(self):
@@ -330,7 +383,7 @@ class PokemonRedEnv(Env):
 
         if region_id not in self.visited_regions:
             self.visited_regions.add(region_id)
-            self.region_count_r += 1
+            self.region_count_r += 5
 
         return self.region_count_r
     
